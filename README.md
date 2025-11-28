@@ -20,7 +20,7 @@ Sistema de gerenciamento de beneficiários para o Rotary Club.
 
 ```bash
 # Clone o repositório
-git clone https://github.com/seu-usuario/rotary-backend.git
+git clone https://github.com/gameprei/RotaryAssist.git
 
 # Instale as dependências
 npm install
