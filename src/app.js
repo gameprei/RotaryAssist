@@ -13,6 +13,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", (await import("./routes/BeneficiarioRoutes.js")).default);
 app.use("/api", (await import("./routes/MembroRoutes.js")).default);
+app.use("/api", (await import("./routes/EquipamentoRoutes.js")).default);
 
 app.get("/", (req, res) => {
   res.json({ message: "API Rotary rodadando" });
