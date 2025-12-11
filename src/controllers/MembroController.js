@@ -48,11 +48,14 @@ class MembroController {
         endereco,
         bairro,
         cidade,
+        uf,
         cep,
         cargo,
         profissao,
         empresa,
       } = req.body;
+
+      
       if (
         !nome ||
         !cpf ||
@@ -64,6 +67,7 @@ class MembroController {
         !endereco ||
         !bairro ||
         !cidade ||
+        !uf || 
         !cep ||
         !cargo ||
         !profissao ||
@@ -74,17 +78,30 @@ class MembroController {
           .json({ message: "Todos os campos são obrigatórios" });
       }
 
-      //validar CPF
+      // Validar CPF
       const cpfRegex = /^\d{11}$/;
       if (!cpfRegex.test(cpf)) {
         return res.status(400).json({ message: "CPF inválido" });
       }
 
-      //validar data de nascimento
+      // Validar UF
+      const ufRegex = /^[A-Z]{2}$/;
+      if (!ufRegex.test(uf)) {
+        return res.status(400).json({ message: "UF inválida" });
+      }
+
+      // Validar data de nascimento
       const anoAtual = new Date().getFullYear();
       if (new Date(data_nascimento).getFullYear() > anoAtual) {
         return res.status(400).json({ message: "Data de nascimento inválida" });
       }
+
+      // Verificar se CPF já existe
+      const membrosExistentes = await MembroModel.buscarPorTermo(cpf);
+      if (membrosExistentes.length > 0) {
+        return res.status(400).json({ message: "CPF já cadastrado" });
+      }
+
       const novoMembro = await MembroModel.cadastrar({
         nome,
         cpf,
@@ -96,6 +113,7 @@ class MembroController {
         endereco,
         bairro,
         cidade,
+        uf, // NOVO CAMPO
         cep,
         cargo,
         profissao,
@@ -104,20 +122,22 @@ class MembroController {
       res.status(201).json(novoMembro);
     } catch (error) {
       console.error("Erro ao cadastrar membro:", error);
-      res.status(500).json({ message: "Erro ao cadastrar membro" });
-
+      
       if (error.code === "ER_DUP_ENTRY") {
         return res.status(400).json({ message: "CPF já cadastrado" });
       }
+      
+      res.status(500).json({ message: "Erro ao cadastrar membro" });
     }
   }
 
   // Atualizar membro existente
   static async atualizar(req, res) {
     try {
-      const { cpf } = req.params;
+      const { cpfAntigo } = req.params; // cpfAntigo (o CPF que está sendo editado)
       const {
         nome,
+        cpf, 
         rg,
         email,
         telefone,
@@ -126,21 +146,47 @@ class MembroController {
         endereco,
         bairro,
         cidade,
+        uf,
         cep,
         cargo,
         profissao,
         empresa,
       } = req.body;
 
-      // validar se o corpo da requisição existe
-      if (!req.body) {
+      // Validar se o corpo da requisição existe
+      if (!req.body || Object.keys(req.body).length === 0) {
         return res.status(400).json({ message: "Corpo da requisição vazio" });
       }
 
-      // validar CPF
+      // Validar CPF antigo (da URL)
       const cpfRegex = /^\d{11}$/;
-      if (!cpfRegex.test(cpf)) {
-        return res.status(400).json({ message: "CPF inválido" });
+      if (!cpfRegex.test(cpfAntigo)) {
+        return res.status(400).json({ message: "CPF da URL inválido" });
+      }
+
+      // Se tentar alterar o CPF, validar o novo CPF
+      if (cpf) {
+        if (!cpfRegex.test(cpf)) {
+          return res.status(400).json({ message: "Novo CPF inválido" });
+        }
+        
+        // Verificar se o novo CPF já existe 
+        const membrosExistentes = await MembroModel.buscarPorTermo(cpf);
+        const membroComMesmoCPF = membrosExistentes.find(
+          (m) => m.cpf === cpf && m.cpf !== cpfAntigo
+        );
+        
+        if (membroComMesmoCPF) {
+          return res.status(400).json({ message: "Novo CPF já cadastrado para outro membro" });
+        }
+      }
+
+      // Validar UF apenas se foi fornecida
+      if (uf) {
+        const ufRegex = /^[A-Z]{2}$/;
+        if (!ufRegex.test(uf)) {
+          return res.status(400).json({ message: "UF inválida" });
+        }
       }
 
       // Validar data de nascimento apenas se foi fornecida
@@ -154,24 +200,38 @@ class MembroController {
         }
       }
 
-      const membroAtualizado = await MembroModel.atualizar(cpf, {
-        nome,
-        rg,
-        email,
-        telefone,
-        data_nascimento,
-        data_ingresso,
-        endereco,
-        bairro,
-        cidade,
-        cep,
-        cargo,
-        profissao,
-        empresa,
-      });
+      // Preparar dados para atualização
+      const dadosAtualizacao = {};
+      if (nome) dadosAtualizacao.nome = nome;
+      if (cpf) dadosAtualizacao.cpf = cpf;
+      if (rg) dadosAtualizacao.rg = rg;
+      if (email) dadosAtualizacao.email = email;
+      if (telefone) dadosAtualizacao.telefone = telefone;
+      if (data_nascimento) dadosAtualizacao.data_nascimento = data_nascimento;
+      if (data_ingresso) dadosAtualizacao.data_ingresso = data_ingresso;
+      if (endereco) dadosAtualizacao.endereco = endereco;
+      if (bairro) dadosAtualizacao.bairro = bairro;
+      if (cidade) dadosAtualizacao.cidade = cidade;
+      if (uf) dadosAtualizacao.uf = uf;
+      if (cep) dadosAtualizacao.cep = cep;
+      if (cargo) dadosAtualizacao.cargo = cargo;
+      if (profissao) dadosAtualizacao.profissao = profissao;
+      if (empresa) dadosAtualizacao.empresa = empresa;
+
+      // Atualizar membro
+      const membroAtualizado = await MembroModel.atualizar(cpfAntigo, dadosAtualizacao);
       return res.json(membroAtualizado);
     } catch (error) {
       console.error("Erro ao atualizar membro:", error);
+      
+      if (error.message === "Membro não encontrado") {
+        return res.status(404).json({ message: error.message });
+      }
+      
+      if (error.code === "ER_DUP_ENTRY") {
+        return res.status(400).json({ message: "CPF já cadastrado para outro membro" });
+      }
+      
       res.status(500).json({ message: "Erro interno do servidor" });
     }
   }
@@ -181,7 +241,7 @@ class MembroController {
     try {
       const { cpf } = req.params;
       const resultado = await MembroModel.excluir(cpf);
-      if (resultado.affectedRows === 0) {
+      if (!resultado) {
         return res.status(404).json({ message: "Membro não encontrado" });
       }
       res.json({ message: "Membro excluído com sucesso" });

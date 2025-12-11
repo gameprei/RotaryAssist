@@ -10,7 +10,7 @@ router.get("/membros/:termo", MembroController.buscarPorTermo);
 // Rota para cadastrar um novo membro
 router.post("/membros", MembroController.cadastrar);
 // Rota para atualizar um membro existente
-router.put("/membros/:cpf", MembroController.atualizar);
+router.put("/membros/:cpfAntigo", MembroController.atualizar);
 // Rota para excluir um membro
 router.delete("/membros/:cpf", MembroController.excluir);
 

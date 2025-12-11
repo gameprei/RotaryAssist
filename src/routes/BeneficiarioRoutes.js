@@ -10,8 +10,9 @@ router.get("/beneficiarios/:termo", BeneficiarioController.buscarPorTermo);
 // Rota para cadastrar um novo beneficiário => Funcionando
 router.post("/beneficiarios", BeneficiarioController.cadastrar);
 // Rota para atualizar um beneficiário existente' => Funcionando
-router.put("/beneficiarios/:cpf", BeneficiarioController.atualizar);
+router.put("/beneficiarios/:cpfAntigo", BeneficiarioController.atualizar);
 // Rota para excluir um beneficiário => Funcionando
 router.delete("/beneficiarios/:cpf", BeneficiarioController.excluir);
 
 export default router;
+''
